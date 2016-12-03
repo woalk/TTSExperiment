@@ -37,26 +37,26 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
     private static final int MAGIC_PROGRESS = 999;
 
     //region instance variables
-    TextToSpeech mTTS;
-    ArrayAdapter<VoiceWrapper> mVoiceAdapter;
+    private TextToSpeech mTTS;
+    private ArrayAdapter<VoiceWrapper> mVoiceAdapter;
     private int mVoiceSavedSelection = -1;
     //endregion
 
     //region view instances
-    View mSpeakButton;
-    TextView mTextLog;
-    ScrollView mTextLogLayout;
-    EditText mTextInput;
-    Spinner mLanguageSpinner;
-    View mSubheaderDivider;
-    View mVoiceSelectLayout;
-    Spinner mVoiceSelect;
-    View mPitchSelectLayout;
-    SeekBar mPitchSelect;
-    TextView mPitchValue;
-    View mSpeedSelectLayout;
-    SeekBar mSpeedSelect;
-    TextView mSpeedValue;
+    private View mSpeakButton;
+    private TextView mTextLog;
+    private ScrollView mTextLogLayout;
+    private EditText mTextInput;
+    private Spinner mLanguageSpinner;
+    private View mSubheaderDivider;
+    private View mVoiceSelectLayout;
+    private Spinner mVoiceSelect;
+    private View mPitchSelectLayout;
+    private SeekBar mPitchSelect;
+    private TextView mPitchValue;
+    private View mSpeedSelectLayout;
+    private SeekBar mSpeedSelect;
+    private TextView mSpeedValue;
     //endregion
 
     @Override
