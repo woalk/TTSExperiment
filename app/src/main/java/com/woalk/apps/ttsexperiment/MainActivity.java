@@ -259,7 +259,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         if (number < 0) {
             // converting to thousandth
             // number is always negative => 1000 - |number|
-            result = (1000f + number) / 1000f;
+            result = (1000f + (number / 1.5f)) / 1000f;
         } else {
             result = 1 + ((number) / 100f);
         }
