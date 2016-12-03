@@ -14,6 +14,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ScrollView;
 import android.widget.SeekBar;
 import android.widget.Spinner;
@@ -128,11 +129,15 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
                     mVoiceSelectLayout.setVisibility(View.GONE);
                     mPitchSelectLayout.setVisibility(View.GONE);
                     mSpeedSelectLayout.setVisibility(View.GONE);
+                    // change button icons
+                    ((ImageButton) view).setImageResource(R.drawable.ic_settings_white_24px);
                 } else {
                     mSubheaderDivider.setVisibility(View.VISIBLE);
                     mVoiceSelectLayout.setVisibility(View.VISIBLE);
                     mPitchSelectLayout.setVisibility(View.VISIBLE);
                     mSpeedSelectLayout.setVisibility(View.VISIBLE);
+                    // change button icons
+                    ((ImageButton) view).setImageResource(R.drawable.ic_expand_less_white_24px);
                 }
             }
         });
