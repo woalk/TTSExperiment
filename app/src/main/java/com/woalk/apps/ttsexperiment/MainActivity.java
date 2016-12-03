@@ -19,11 +19,18 @@ import android.widget.ScrollView;
 import android.widget.SeekBar;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.Locale;
 import java.util.Set;
 
 public class MainActivity extends AppCompatActivity implements TextToSpeech.OnInitListener {
+    private static final String EXTRA_SAVED_LOG = "log";
+    private static final String EXTRA_SAVED_INPUT = "in";
+    private static final String EXTRA_SAVED_LANG = "lng";
+    private static final String EXTRA_SAVED_VOICE = "vox";
+    private static final String EXTRA_SAVED_PITCH = "pit";
+    private static final String EXTRA_SAVED_SPEED = "spe";
     private static final int MY_DATA_CHECK_CODE = 1;
     private static final Locale[] MY_LOCALE_LIST = new Locale[]{Locale.US, Locale.UK,
             Locale.GERMANY, Locale.ITALY, Locale.FRANCE, new Locale("es", "ES")};
@@ -32,6 +39,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
     //region instance variables
     TextToSpeech mTTS;
     ArrayAdapter<VoiceWrapper> mVoiceAdapter;
+    private int mVoiceSavedSelection = -1;
     //endregion
 
     //region view instances
@@ -191,6 +199,19 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
                 mSpeedSelect.setProgress(MAGIC_PROGRESS);
             }
         });
+
+        // restore log, input and settings if there were some saved before (e.g. orientation change)
+        // @see #onSaveInstanceState(Bundle)
+        if (savedInstanceState != null) {
+            mTextLog.setText(savedInstanceState.getCharSequence(EXTRA_SAVED_LOG));
+            mTextInput.setText(savedInstanceState.getCharSequence(EXTRA_SAVED_INPUT));
+            mLanguageSpinner.setSelection(savedInstanceState.getInt(EXTRA_SAVED_LANG));
+            // delay voice selection, because that needs to be populated later
+            // @see #onInit(int)
+            mVoiceSavedSelection = savedInstanceState.getInt(EXTRA_SAVED_VOICE);
+            mPitchSelect.setProgress(savedInstanceState.getInt(EXTRA_SAVED_PITCH));
+            mSpeedSelect.setProgress(savedInstanceState.getInt(EXTRA_SAVED_SPEED));
+        }
     }
 
     @Override
@@ -210,6 +231,12 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
 
     @Override
     public void onInit(int ttsStatus) {
+        if (ttsStatus == TextToSpeech.ERROR) {
+            // show error message and abort all post-TTS-initialization
+            Toast.makeText(this, R.string.tts_error, Toast.LENGTH_LONG).show();
+            return;
+        }
+
         // initialization of TTS finished
         // enable speak button
         mSpeakButton.setEnabled(true);
@@ -226,11 +253,29 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
                     android.R.layout.simple_spinner_dropdown_item,
                     new String[]{getString(R.string.default_voice)}));
         }
+
+        // if there was a saved-restored voice index, re-set it now
+        if (mVoiceSavedSelection > -1) {
+            mVoiceSelect.setSelection(mVoiceSavedSelection);
+            mVoiceSavedSelection = -1;
+        }
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+
+        outState.putCharSequence(EXTRA_SAVED_LOG, mTextLog.getText());
+        outState.putCharSequence(EXTRA_SAVED_INPUT, mTextInput.getText());
+        outState.putInt(EXTRA_SAVED_LANG, mLanguageSpinner.getSelectedItemPosition());
+        outState.putInt(EXTRA_SAVED_VOICE, mVoiceSelect.getSelectedItemPosition());
+        outState.putInt(EXTRA_SAVED_PITCH, mPitchSelect.getProgress());
+        outState.putInt(EXTRA_SAVED_SPEED, mSpeedSelect.getProgress());
     }
 
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     private void updateVoices() {
-        if (mVoiceAdapter != null) {
+        if (mTTS != null && mVoiceAdapter != null) {
             Set<Voice> voices = mTTS.getVoices();
 
             // reset voice selection
