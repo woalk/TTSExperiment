@@ -24,16 +24,21 @@ import java.util.Locale;
 import java.util.Set;
 
 public class MainActivity extends AppCompatActivity implements TextToSpeech.OnInitListener {
+    //region INTENT_/BUNDLE_EXTRAS
     private static final String EXTRA_SAVED_LOG = "log";
     private static final String EXTRA_SAVED_INPUT = "in";
     private static final String EXTRA_SAVED_LANG = "lng";
     private static final String EXTRA_SAVED_VOICE = "vox";
     private static final String EXTRA_SAVED_PITCH = "pit";
     private static final String EXTRA_SAVED_SPEED = "spe";
+    //endregion
+    //region constants
+    private static final String LOG_TAG = "TTSExperiment";
     private static final int MY_DATA_CHECK_CODE = 1;
     private static final Locale[] MY_LOCALE_LIST = new Locale[]{Locale.US, Locale.UK,
             Locale.GERMANY, Locale.ITALY, Locale.FRANCE, new Locale("es", "ES")};
     private static final int MAGIC_PROGRESS = 999;
+    //endregion
 
     //region instance variables
     private TextToSpeech mTTS;
@@ -63,11 +68,6 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // check for TTS availability
-        Intent checkIntent = new Intent();
-        checkIntent.setAction(TextToSpeech.Engine.ACTION_CHECK_TTS_DATA);
-        startActivityForResult(checkIntent, MY_DATA_CHECK_CODE);
-
         // get view instances
         mTextLog = (TextView) findViewById(R.id.text_log);
         mTextLogLayout = (ScrollView) findViewById(R.id.layout_log);
@@ -84,7 +84,12 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         mSpeedSelect = (SeekBar) findViewById(R.id.speed_select);
         mSpeedValue = (TextView) findViewById(R.id.speed_value);
 
-        // assign button click
+        // check for TTS availability
+        Intent checkIntent = new Intent();
+        checkIntent.setAction(TextToSpeech.Engine.ACTION_CHECK_TTS_DATA);
+        startActivityForResult(checkIntent, MY_DATA_CHECK_CODE);
+
+        // assign speak button click
         mSpeakButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -308,7 +313,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
             result = 1 + ((number) / 100f);
         }
 
-        Log.d("TTSExperiment", "Magic convert from " + progress + " to " + number
+        Log.d(LOG_TAG, "Magic convert from " + progress + " to " + number
                 + " to " + result);
         return result;
     }
