@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.TypedArray;
 import android.graphics.Color;
+import android.graphics.Rect;
 import android.os.Build;
 import android.os.Handler;
 import android.speech.RecognitionListener;
@@ -26,6 +27,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ScrollView;
@@ -84,6 +86,8 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
     private View mSpeedSelectLayout;
     private SeekBar mSpeedSelect;
     private TextView mSpeedValue;
+    private View mSubheaderDivider2;
+    private CheckBox mCheckVoiceInputVariants;
     //endregion
 
     @Override
@@ -110,6 +114,8 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         mSpeedSelectLayout = findViewById(R.id.layout_speed_select);
         mSpeedSelect = (SeekBar) findViewById(R.id.speed_select);
         mSpeedValue = (TextView) findViewById(R.id.speed_value);
+        mSubheaderDivider2 = findViewById(R.id.subheader_divider2);
+        mCheckVoiceInputVariants = (CheckBox) findViewById(R.id.check_voice_input_variants);
 
         // check for TTS availability
         Intent checkIntent = new Intent();
@@ -212,6 +218,8 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
                     mVoiceSelectLayout.setVisibility(View.VISIBLE);
                     mPitchSelectLayout.setVisibility(View.VISIBLE);
                     mSpeedSelectLayout.setVisibility(View.VISIBLE);
+                    mSubheaderDivider2.setVisibility(View.VISIBLE);
+                    mCheckVoiceInputVariants.setVisibility(View.VISIBLE);
                     // change button icons
                     mSettingsButton.setImageResource(R.drawable.ic_expand_less_white_24px);
                 }
@@ -301,6 +309,8 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         mVoiceSelectLayout.setVisibility(View.GONE);
         mPitchSelectLayout.setVisibility(View.GONE);
         mSpeedSelectLayout.setVisibility(View.GONE);
+        mSubheaderDivider2.setVisibility(View.GONE);
+        mCheckVoiceInputVariants.setVisibility(View.GONE);
         // change button icons
         mSettingsButton.setImageResource(R.drawable.ic_settings_white_24px);
     }
@@ -528,11 +538,18 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
             ArrayList data = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
             if (data != null) {
                 String str = "";
-                for (int i = 0; i < data.size(); i++) {
-                    if (i > 0) {
-                        str += " | ";
+
+                if (mCheckVoiceInputVariants.isChecked()) {
+                    // all possible variants should be printed
+                    for (int i = 0; i < data.size(); i++) {
+                        if (i > 0) {
+                            str += " | ";
+                        }
+                        str += data.get(i);
                     }
-                    str += data.get(i);
+                } else if (data.size() > 0) {
+                    // print only the first recognized variant
+                    str += data.get(0);
                 }
 
                 // get accent color

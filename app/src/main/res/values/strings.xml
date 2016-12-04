@@ -12,6 +12,7 @@
     <string name="default_voice">Default voice</string>
     <string name="text_pitch">Pitch:</string>
     <string name="text_speed">Speech rate:</string>
+    <string name="voice_input_variants">Print all variants voice input could be interpreted as</string>
 
     <string-array name="languages">
         <item>English (US)</item>
