@@ -9,6 +9,7 @@ import android.speech.tts.Voice;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -52,6 +53,8 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
     private ScrollView mTextLogLayout;
     private EditText mTextInput;
     private Spinner mLanguageSpinner;
+    private ImageButton mSettingsButton;
+    private View mSubheader;
     private View mSubheaderDivider;
     private View mVoiceSelectLayout;
     private Spinner mVoiceSelect;
@@ -74,6 +77,8 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         mTextInput = (EditText) findViewById(R.id.text_input);
         mSpeakButton = findViewById(R.id.button_speak);
         mLanguageSpinner = (Spinner) findViewById(R.id.lang_select);
+        mSettingsButton = (ImageButton) findViewById(R.id.settings_button);
+        mSubheader = findViewById(R.id.subheader);
         mSubheaderDivider = findViewById(R.id.subheader_divider);
         mVoiceSelectLayout = findViewById(R.id.layout_voice_select);
         mVoiceSelect = (Spinner) findViewById(R.id.voice_select);
@@ -133,23 +138,19 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         });
 
         // assign settings button click
-        findViewById(R.id.settings_button).setOnClickListener(new View.OnClickListener() {
+        mSettingsButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 if (mVoiceSelectLayout.getVisibility() == View.VISIBLE) {
-                    mSubheaderDivider.setVisibility(View.GONE);
-                    mVoiceSelectLayout.setVisibility(View.GONE);
-                    mPitchSelectLayout.setVisibility(View.GONE);
-                    mSpeedSelectLayout.setVisibility(View.GONE);
-                    // change button icons
-                    ((ImageButton) view).setImageResource(R.drawable.ic_settings_white_24px);
+                    hideSettings();
                 } else {
+                    // show settings
                     mSubheaderDivider.setVisibility(View.VISIBLE);
                     mVoiceSelectLayout.setVisibility(View.VISIBLE);
                     mPitchSelectLayout.setVisibility(View.VISIBLE);
                     mSpeedSelectLayout.setVisibility(View.VISIBLE);
                     // change button icons
-                    ((ImageButton) view).setImageResource(R.drawable.ic_expand_less_white_24px);
+                    mSettingsButton.setImageResource(R.drawable.ic_expand_less_white_24px);
                 }
             }
         });
@@ -216,6 +217,29 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
             mPitchSelect.setProgress(savedInstanceState.getInt(EXTRA_SAVED_PITCH));
             mSpeedSelect.setProgress(savedInstanceState.getInt(EXTRA_SAVED_SPEED));
         }
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        // find out whether the click was inside the subheader or not
+        Rect viewRect = new Rect();
+        mSubheader.getGlobalVisibleRect(viewRect);
+        if (!viewRect.contains((int) ev.getRawX(), (int) ev.getRawY())
+                && mVoiceSelectLayout.getVisibility() == View.VISIBLE) {
+            // collapse subheader, if the click was outside and it was expanded
+            hideSettings();
+        }
+        // handle the touch event as it is supposed to be handled
+        return super.dispatchTouchEvent(ev);
+    }
+
+    private void hideSettings() {
+        mSubheaderDivider.setVisibility(View.GONE);
+        mVoiceSelectLayout.setVisibility(View.GONE);
+        mPitchSelectLayout.setVisibility(View.GONE);
+        mSpeedSelectLayout.setVisibility(View.GONE);
+        // change button icons
+        mSettingsButton.setImageResource(R.drawable.ic_settings_white_24px);
     }
 
     @Override
@@ -316,6 +340,15 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         Log.d(LOG_TAG, "Magic convert from " + progress + " to " + number
                 + " to " + result);
         return result;
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (mVoiceSelectLayout.getVisibility() == View.VISIBLE) {
+            hideSettings();
+        } else {
+            super.onBackPressed();
+        }
     }
 
     @Override
