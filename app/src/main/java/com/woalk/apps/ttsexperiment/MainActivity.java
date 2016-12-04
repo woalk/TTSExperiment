@@ -1,13 +1,26 @@
 package com.woalk.apps.ttsexperiment;
 
+import android.Manifest;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.res.TypedArray;
+import android.graphics.Color;
 import android.os.Build;
+import android.os.Handler;
+import android.speech.RecognitionListener;
+import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.Voice;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.SpannableString;
+import android.text.style.ForegroundColorSpan;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
@@ -21,6 +34,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Set;
 
@@ -36,8 +50,11 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
     //region constants
     private static final String LOG_TAG = "TTSExperiment";
     private static final int MY_DATA_CHECK_CODE = 1;
+    private static final int MY_PERMISSIONS_REQUEST_RECORD_AUDIO = 2;
     private static final Locale[] MY_LOCALE_LIST = new Locale[]{Locale.US, Locale.UK,
             Locale.GERMANY, Locale.ITALY, Locale.FRANCE, new Locale("es", "ES")};
+    private static final String[] MY_LANG_TAG_LIST = new String[]{"en-US", "en-UK",
+            "de-DE", "it-IT", "fr-FR", "es-ES"};
     private static final int MAGIC_PROGRESS = 999;
     //endregion
 
@@ -45,10 +62,13 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
     private TextToSpeech mTTS;
     private ArrayAdapter<VoiceWrapper> mVoiceAdapter;
     private int mVoiceSavedSelection = -1;
+    private SpeechRecognizer mSpeech;
     //endregion
 
     //region view instances
     private View mSpeakButton;
+    private View mVoiceInButton;
+    private View mVoiceInWaitIndicator;
     private TextView mTextLog;
     private ScrollView mTextLogLayout;
     private EditText mTextInput;
@@ -76,6 +96,8 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         mTextLogLayout = (ScrollView) findViewById(R.id.layout_log);
         mTextInput = (EditText) findViewById(R.id.text_input);
         mSpeakButton = findViewById(R.id.button_speak);
+        mVoiceInButton = findViewById(R.id.button_voice);
+        mVoiceInWaitIndicator = findViewById(R.id.wait_voice);
         mLanguageSpinner = (Spinner) findViewById(R.id.lang_select);
         mSettingsButton = (ImageButton) findViewById(R.id.settings_button);
         mSubheader = findViewById(R.id.subheader);
@@ -93,6 +115,9 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         Intent checkIntent = new Intent();
         checkIntent.setAction(TextToSpeech.Engine.ACTION_CHECK_TTS_DATA);
         startActivityForResult(checkIntent, MY_DATA_CHECK_CODE);
+
+        // check for audio availability
+        initAudioPermission();
 
         // assign speak button click
         mSpeakButton.setOnClickListener(new View.OnClickListener() {
@@ -119,6 +144,44 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
                 }
 
                 mTextInput.setText(null);
+            }
+        });
+
+        // assign voice input button
+        mVoiceInButton.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View view, MotionEvent motionEvent) {
+                switch (motionEvent.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        if (mSpeech != null) {
+                            // get language tag to use for recognition
+                            String l = MY_LANG_TAG_LIST[mLanguageSpinner.getSelectedItemPosition()];
+                            // create the RecognizerIntent
+                            Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+                            i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                                    RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+                            i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, l);
+                            // send Intent to start listening
+                            mSpeech.startListening(i);
+                        }
+                        return true;
+                    case MotionEvent.ACTION_UP:
+                        // button released, stop listening
+                        mSpeech.stopListening();
+                        // delay the next possible voice input by 2 seconds
+                        // to avoid interference
+                        mVoiceInButton.setEnabled(false);
+                        mVoiceInWaitIndicator.setVisibility(View.VISIBLE);
+                        new Handler().postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                mVoiceInButton.setEnabled(true);
+                                mVoiceInWaitIndicator.setVisibility(View.GONE);
+                            }
+                        }, 2000);
+                        return true;
+                }
+                return false;
             }
         });
 
@@ -289,6 +352,50 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         }
     }
 
+    public void initAudioPermission() {
+        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
+            // cancel initialization, as speech recognition is not available on the system
+            Log.w(LOG_TAG, "Speech recognition is not available.");
+            return;
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
+                != PackageManager.PERMISSION_GRANTED) {
+            // Should we show an explanation?
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                    Manifest.permission.RECORD_AUDIO)) {
+                Toast.makeText(this, R.string.audio_error, Toast.LENGTH_LONG).show();
+            }
+
+            // No explanation needed, we can request the permission.
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.RECORD_AUDIO},
+                    MY_PERMISSIONS_REQUEST_RECORD_AUDIO);
+        } else {
+            initSpeechRecognizer();
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case MY_PERMISSIONS_REQUEST_RECORD_AUDIO:
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // permission was granted
+                    initSpeechRecognizer();
+                }
+        }
+    }
+
+    public void initSpeechRecognizer() {
+        // create speech recognition instance
+        mSpeech = SpeechRecognizer.createSpeechRecognizer(this);
+        mSpeech.setRecognitionListener(new Recognition());
+        // enable voice input button
+        mVoiceInButton.setEnabled(true);
+    }
+
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
@@ -356,7 +463,104 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         if (mTTS != null) {
             mTTS.shutdown();
         }
+        if (mSpeech != null) {
+            mSpeech.destroy();
+        }
         super.onDestroy();
+    }
+
+    private class Recognition implements RecognitionListener {
+        @Override
+        public void onReadyForSpeech(Bundle params) {
+            if (BuildConfig.DEBUG) {
+                Log.d(LOG_TAG, "Ready for speech. Params: " + params);
+            }
+            mTextInput.setEnabled(false);
+            mTextInput.setText(R.string.text_voice_input);
+        }
+
+        @Override
+        public void onBeginningOfSpeech() {
+            if (BuildConfig.DEBUG) {
+                Log.d(LOG_TAG, "Beginning of speech.");
+            }
+        }
+
+        @Override
+        public void onRmsChanged(float rmsdB) {
+            if (BuildConfig.DEBUG) {
+                Log.d(LOG_TAG, "RMS changed to " + rmsdB);
+            }
+        }
+
+        @Override
+        public void onBufferReceived(byte[] buffer) {
+            if (BuildConfig.DEBUG) {
+                Log.d(LOG_TAG, "Buffer received.");
+            }
+        }
+
+        @Override
+        public void onEndOfSpeech() {
+            if (BuildConfig.DEBUG) {
+                Log.d(LOG_TAG, "End of speech.");
+            }
+            mTextInput.setEnabled(true);
+            mTextInput.setText(null);
+        }
+
+        @Override
+        public void onError(int error) {
+            if (BuildConfig.DEBUG) {
+                Log.d(LOG_TAG, "Speech error " + error + ".");
+            }
+            mTextInput.setEnabled(true);
+            mTextInput.setEnabled(true);
+            mTextInput.setText(null);
+            mSpeech.cancel();
+        }
+
+        @Override
+        public void onResults(Bundle results) {
+            if (BuildConfig.DEBUG) {
+                Log.d(LOG_TAG, "Speech results received: " + results);
+            }
+            ArrayList data = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+            if (data != null) {
+                String str = "";
+                for (int i = 0; i < data.size(); i++) {
+                    if (i > 0) {
+                        str += " | ";
+                    }
+                    str += data.get(i);
+                }
+
+                // get accent color
+                int[] attrs = new int[] { R.attr.colorAccent /* index 0 */};
+                TypedArray ta = obtainStyledAttributes(attrs);
+                int accentColor = ta.getColor(0 /* index */, Color.BLACK);
+                ta.recycle();
+
+                str = "[YOU] " + str + "\n";
+                SpannableString coloredStr = new SpannableString(str);
+                coloredStr.setSpan(new ForegroundColorSpan(accentColor), 0, str.length(), 0);
+                mTextLog.append(coloredStr);
+            }
+        }
+
+        @Override
+        public void onPartialResults(Bundle partialResults) {
+            if (BuildConfig.DEBUG) {
+                Log.d(LOG_TAG, "Partial speech results received: " + partialResults);
+            }
+        }
+
+        @Override
+        public void onEvent(int eventType, Bundle params) {
+            if (BuildConfig.DEBUG) {
+                Log.d(LOG_TAG, "Speech event " + eventType + " received: " + params);
+            }
+        }
     }
 
     /**

@@ -247,6 +247,28 @@
                 android:layout_weight="0"
                 android:enabled="false"
                 android:text="@string/button_speak" />
+
+            <FrameLayout
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_weight="0">
+
+                <Button
+                    android:id="@+id/button_voice"
+                    style="?buttonBarButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:enabled="false"
+                    android:text="@string/button_voice" />
+
+                <ProgressBar
+                    android:id="@+id/wait_voice"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_margin="@dimen/default_margin_medium"
+                    android:indeterminate="true"
+                    android:visibility="gone" />
+            </FrameLayout>
         </LinearLayout>
     </android.support.v7.widget.CardView>
 </RelativeLayout>
